@@ -579,7 +579,7 @@ def image_dirs_to_samples(dirname, label_size, resize=None, convert_gray=None, f
     print("Starting to parse images...")
     if filetypes:
         if filetypes not in [list, tuple]: filetypes = list(filetypes)
-    directory = "images/%s/jpg/" % dirname
+    directory = "images/%s/" % dirname
     raw_samples, raw_targets = directory_to_samples(directory, flags=filetypes, down_sampling=down_sampling)
     if shuffle_data:
         raw_samples, raw_targets = shuffle(raw_samples, raw_targets)
@@ -768,7 +768,8 @@ def directory_to_samples(directory, flags=None, filter_channel=False, down_sampl
     #     # classes = sorted(next(os.walk(directory))[1])
     # except Exception: # Python 3
     print(directory)
-    classes = os.walk(directory).__next__()[1]
+    classes = sorted(os.walk(directory).next()[1])
+    #classes = os.walk(directory).__next__()[1]
     # keep category numerical order, if all categories are digits
     if all([n.isdigit() for n in classes]):
         classes = sorted(classes, key=lambda v: int(v))
@@ -780,7 +781,8 @@ def directory_to_samples(directory, flags=None, filter_channel=False, down_sampl
         #     walk = os.walk(c_dir).next()
         #     # walk = next(os.walk(c_dir))
         # except Exception: # Python 3
-        walk = os.walk(c_dir).__next__()
+        walk = os.walk(c_dir).next()
+        #walk = os.walk(c_dir).__next__()
         cands = walk[2]
         # if down sampling, discard this sample with probability = 1-down_sampling 
         if down_sampling and (c in down_sampling):
