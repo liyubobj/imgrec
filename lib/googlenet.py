@@ -23,6 +23,7 @@ from tflearn.layers.merge_ops import merge
 from tflearn.layers.estimator import regression
 
 from lib import data_util
+from lib import monitor_callback
 
 # import tflearn.datasets.oxflower17 as oxflower17
 # X, Y = oxflower17.load_data(one_hot=True, resize_pics=(227, 227))
@@ -182,10 +183,11 @@ class GoogLeNet(object):
 
 
     def fit(self, X, Y, n_epoch=1000):
+        train_monitor_cb = monitor_callback.TrainMonitorCallback()
         print("fit data dim: X=%s, Y=%s" % (np.shape(X), np.shape(Y)))
         self.model.fit(X, Y, n_epoch=n_epoch, validation_set=0.1, shuffle=True,
                   show_metric=True, batch_size=32, snapshot_step=200,
-                  snapshot_epoch=True, run_id=self.model_name)
+                  snapshot_epoch=False, run_id=self.model_name, callbacks=train_monitor_cb)
         
 
 
