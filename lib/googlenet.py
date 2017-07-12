@@ -15,6 +15,7 @@ from __future__ import division, print_function, absolute_import
 
 import os, tflearn
 import numpy as np
+import math
 
 from tflearn.layers.core import input_data, dropout, fully_connected
 from tflearn.layers.conv import conv_2d, max_pool_2d, avg_pool_2d
@@ -25,12 +26,25 @@ from tflearn.layers.estimator import regression
 from lib import data_util
 from lib import monitor_callback
 
+from dnn_train import train_service
+
 # import tflearn.datasets.oxflower17 as oxflower17
 # X, Y = oxflower17.load_data(one_hot=True, resize_pics=(227, 227))
 
 class GoogLeNet(object):
 
     def __init__(self, args):
+        # init AI Vision train service
+        self.train_service = train_service.TrainService()
+
+        self.train_dataset = self.train_service.getDataset()
+        self.train_entry = self.train_service.getEntry()
+        self.train_output = self.train_service.getOutput()
+
+        print("Dataset path: %s" % self.train_dataset)
+        print("Train entry code path: %s" % self.train_entry)
+        print("Train output file: %s" % self.train_output)
+
         # ctrl
         self.img_size = args.img_size
         self.label_size = args.label_size
@@ -157,39 +171,23 @@ class GoogLeNet(object):
                              loss='categorical_crossentropy',
                              learning_rate=0.001)
 
-        model_path = 'models/%s' % self.model_name
+        model_path = 'models/'
         if not os.path.exists(model_path): os.makedirs(model_path)
-        self.model = tflearn.DNN(network, checkpoint_path=model_path+'/model',
-                        max_checkpoints=3, tensorboard_verbose=2)
-        # load existing model checkpoint
-        ckpt = self.get_checkpoint(model_path)
-        if ckpt:    
-            self.model.load(ckpt)
-            print("load existing checkpoint from %s" % ckpt)
-
-
-
-    def get_checkpoint(self, model_path):
-        ckpt_path = '%s/checkpoint' % model_path
-        if not os.path.exists(ckpt_path): return
-        with open(ckpt_path, 'r') as f:
-            lines = [line.split(':')[1].replace('\"', '').strip() for line in f.readlines()]
-            lines = lines[1:][::-1]
-        for line in lines:
-            path = "%s/%s" % (model_path, line)
-            if os.path.exists(path):
-                return path
-
+        self.model = tflearn.DNN(network, checkpoint_path=None, tensorboard_verbose=2)
 
 
     def fit(self, X, Y, n_epoch=1000):
-        train_monitor_cb = monitor_callback.TrainMonitorCallback()
+        val_set = 0.1
+        train_data_size = math.floor(np.shape(X)[0] * (1 - val_set));
+        train_monitor_cb = monitor_callback.TrainMonitorCallback(self.train_service, train_data_size)
         print("fit data dim: X=%s, Y=%s" % (np.shape(X), np.shape(Y)))
         self.model.fit(X, Y, n_epoch=n_epoch, validation_set=0.1, shuffle=True,
                   show_metric=True, batch_size=32, snapshot_step=200,
                   snapshot_epoch=False, run_id=self.model_name, callbacks=train_monitor_cb)
         
-
+    def save(self):
+        self.model.save("models/" + self.model_name)
+        os.system("tar zcvf models.tar.gz models && mv models.tar.gz %s" % self.train_service.getOutput())
 
     def predict(self, X):
         return self.model.predict(X)
@@ -197,7 +195,8 @@ class GoogLeNet(object):
 
 
     def get_data(self, dirname='17flowers', resize_pics=(227, 227), down_sampling=None):
-        pkl_fnames = ["images/%s/%s" % (dirname, f) for f in os.listdir("images/%s/" % dirname) if "samples_" in f]
+        #pkl_fnames = ["%s/%s/%s" % (self.train_dataset, dirname, f) for f in os.listdir("%s/%s/" % (self.train_dataset, dirname)) if "samples_" in f]
+        pkl_fnames = ["%s/%s" % (self.train_dataset, f) for f in os.listdir("%s" % (self.train_dataset)) if "samples_" in f]
         if not pkl_fnames:
             pkl_fnames = data_util.image_dirs_to_samples(dirname, self.label_size,
                 resize=resize_pics, convert_gray=False, filetypes=['.jpg', '.jpeg'], 

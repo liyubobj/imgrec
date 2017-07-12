@@ -1,5 +1,7 @@
 from __future__ import division, print_function, absolute_import
+import sys, os
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from lib import data_util
 from lib.config import params_setup
 from lib.googlenet import GoogLeNet
@@ -8,7 +10,6 @@ from datetime import datetime
 import pickle, gzip
 import numpy as np
 import tflearn.datasets.oxflower17 as oxflower17
-
 
 #-------------------------------
 #   Training
@@ -21,5 +22,6 @@ pkl_files = gnet.get_data(dirname=args.model_name, down_sampling=args.down_sampl
 
 for f in pkl_files:
     X, Y = pickle.load(gzip.open(f, 'rb'))
-    gnet.fit(X, Y, n_epoch=5)
+    gnet.fit(X, Y, n_epoch=1)
+    gnet.save()
     print('[pkl_files] done with %s @ %s' % (f, datetime.now()))
