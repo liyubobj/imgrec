@@ -26,16 +26,14 @@ from tflearn.layers.estimator import regression
 from lib import data_util
 from lib import monitor_callback
 
-from dnn_train import train_service
-
 # import tflearn.datasets.oxflower17 as oxflower17
 # X, Y = oxflower17.load_data(one_hot=True, resize_pics=(227, 227))
 
 class GoogLeNet(object):
 
-    def __init__(self, args):
-        # init AI Vision train service
-        self.train_service = train_service.TrainService()
+    def __init__(self, args, train_service):
+        # AI Vision train service
+        self.train_service = train_service
 
         self.train_dataset = self.train_service.getDataset()
         self.train_entry = self.train_service.getEntry()
@@ -47,9 +45,10 @@ class GoogLeNet(object):
 
         # ctrl
         self.img_size = args.img_size
-        self.label_size = args.label_size
+        self.label_size = self.get_label_size()
         self.model_name = args.model_name
         self.gpu_usage = args.gpu_usage
+        print("Label size: %s" % self.label_size)
 
         # net
         tflearn.config.init_graph(gpu_memory_fraction=self.gpu_usage)
@@ -187,15 +186,19 @@ class GoogLeNet(object):
         
     def save(self):
         self.model.save("models/" + self.model_name)
-        os.system("tar zcvf models.tar.gz models && mv models.tar.gz %s" % self.train_service.getOutput())
+        os.system("tar zcvf models.tar.gz models && mv models.tar.gz %s" % self.train_output)
 
     def predict(self, X):
         return self.model.predict(X)
 
-
+    def get_label_size(self):
+        count = 0
+        for file_name in os.listdir(self.train_dataset):
+            if os.path.isdir(self.train_dataset + "/" + file_name):
+                count = count + 1
+        return count
 
     def get_data(self, dirname='17flowers', resize_pics=(227, 227), down_sampling=None):
-        #pkl_fnames = ["%s/%s/%s" % (self.train_dataset, dirname, f) for f in os.listdir("%s/%s/" % (self.train_dataset, dirname)) if "samples_" in f]
         pkl_fnames = ["%s/%s" % (self.train_dataset, f) for f in os.listdir("%s" % (self.train_dataset)) if "samples_" in f]
         if not pkl_fnames:
             pkl_fnames = data_util.image_dirs_to_samples(dirname, self.label_size,

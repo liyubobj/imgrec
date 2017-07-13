@@ -16,7 +16,7 @@ def params_setup(cmdline=None):
     args = parser.parse_args()
 
   args.label_size = 16
-  args.model_name = "bird"
+  args.model_name = "googlenet"
   args.down_sampling = {str(n): 10000 for n in range(13)}
 
   return args

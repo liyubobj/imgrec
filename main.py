@@ -11,17 +11,30 @@ import pickle, gzip
 import numpy as np
 import tflearn.datasets.oxflower17 as oxflower17
 
+# import AI Vision train service module
+from dnn_train import train_service
+
 #-------------------------------
 #   Training
 #-------------------------------
-# scope_name, label_size = '17flowers', 17
-# scope_name, label_size = '17portraits', 9
-args = params_setup()
-gnet = GoogLeNet(args=args) #img_size=227,  label_size=label_size, gpu_memory_fraction=0.4, scope_name=scope_name)
-pkl_files = gnet.get_data(dirname=args.model_name, down_sampling=args.down_sampling)
 
+# init AI Vision train service
+train_service = train_service.TrainService()
+
+args = params_setup()
+gnet = GoogLeNet(args, train_service)
+
+# go to pre-processing stage
+train_service.sendStatusMessagePreproccess()
+
+# go to training stage
+train_service.sendStatusMessageTrain()
+print(pkl_files)
 for f in pkl_files:
     X, Y = pickle.load(gzip.open(f, 'rb'))
-    gnet.fit(X, Y, n_epoch=1)
+    gnet.fit(X, Y, n_epoch=100)
     gnet.save()
     print('[pkl_files] done with %s @ %s' % (f, datetime.now()))
+
+# go to complete stage
+train_service.sendStatusMessageComplete()

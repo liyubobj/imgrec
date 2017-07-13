@@ -14,6 +14,8 @@ class TrainMonitorCallback(tflearn.callbacks.Callback):
         self._iter = 0
         self._step = 0
         self._step_time = 0.0
+        self._total_time = 0.0
+        self._epoch_time = 0.0
         self._data_size = data_size
         self._train_service = train_service
 
@@ -23,9 +25,14 @@ class TrainMonitorCallback(tflearn.callbacks.Callback):
         self._epoch = training_state.epoch
         self._iter = training_state.current_iter
         self._step = training_state.step
-        self._step_time = training_state.step_time_total
+        self._step_time = training_state.step_time_tota
+        self._total_time = self._epoch_time + self._step_time
+        self.__time = max(self._total_time, )
         #self.show()
         self.send_message()
+
+    def on_epoch_end(self, training_state):
+        self._epoch_time = self._epoch_time + training_state.step_time_total
 
     def send_message(self):
         self._train_service.sendTrainMeticsMessage(self._iter, self._data_size, self._loss)
